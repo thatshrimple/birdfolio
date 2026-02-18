@@ -193,16 +193,29 @@ exec: python {baseDir}/scripts/generate_card.py \
 
 Capture `cardPath` from output.
 
-**Step 6c — Screenshot, save, and send:**
-Run the screenshot script to render the card at 600×400 and save a PNG alongside the HTML:
+**Step 6c — Screenshot, save, upload, and send:**
+Run the screenshot script to render the card at 600×400 and save a PNG:
 ```
 exec: node {baseDir}/scripts/screenshot_card.js "<cardPath>"
 ```
-Capture `pngPath` from output. Send the saved PNG via Telegram:
+Capture `pngPath` from output.
+
+Upload to Cloudflare R2 and get a public URL:
+```
+exec: python {baseDir}/scripts/upload_card.py "<pngPath>"
+```
+Capture `url` from output.
+
+Update the sighting's card URL in the API (use the `id` from the log_sighting output):
+```
+PATCH /users/{telegram_id}/sightings/{sighting_id}/card
+Body: {"card_png_url": "<url>"}
+```
+
+Send the PNG via Telegram:
 ```
 message(action="send", media="<pngPath>")
 ```
-The PNG is automatically saved to `birdfolio/cards/` next to the HTML (same name, `.png` extension).
 
 ### Step 7 — Reply
 
@@ -308,6 +321,7 @@ Read `rarestBird` from output and reply with species name, rarity, date spotted,
 | `generate_card.py` | `--species`, `--scientific-name`, `--rarity`, `--region`, `--date`, `--fun-fact`, `--image-path` (preferred) OR `--image-url`, `--object-position`, `--life-count`, `--workspace` | `{status, cardPath, filename}` |
 | `generate_checklist_card.py` | `--workspace` | `{status, cardPath}` — visual HTML checklist card |
 | `screenshot_card.js` | `<cardPath>` `[outputPath]` | `{status, pngPath}` — saves PNG to `birdfolio/cards/` |
+| `upload_card.py` | `<pngPath>` `[--secrets path]` | `{status, url}` — uploads to R2, returns public URL |
 
 All Python scripts output JSON to stdout. Always pass absolute `--workspace` path.
 `screenshot_card.js` uses OpenClaw's bundled `playwright-core` + system Chrome/Edge (no separate install needed).
