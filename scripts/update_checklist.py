@@ -1,82 +1,82 @@
 #!/usr/bin/env python3
 """
-update_checklist.py — Mark a species as found on the regional checklist.
-
-Searches all rarity tiers (common, rare, superRare) for the species.
-If found, marks it with today's date. Safe to run even if species isn't on checklist.
+update_checklist.py — Mark a species as found in the checklist via the API.
 
 Usage:
   python update_checklist.py \
-    --species "American Robin" \
-    --region "California" \
-    [--date "2026-02-20"] \
-    [--workspace "./birdfolio"]
+    --species "California Quail" \
+    --region "Northern California" \
+    --api-url "https://api-production-d0e2.up.railway.app" \
+    --workspace "./birdfolio"
 
 Output (JSON to stdout):
-  {"status": "ok"|"not_on_checklist", "species": "...", "tier": "...", "dateFound": "..."}
+  {"status": "ok", "tier": "common", "dateFound": "2026-02-18"}
+  {"status": "not_on_checklist"} — if species isn't in the checklist (bonus find)
 """
 import argparse
 import json
 import os
-from datetime import datetime, timezone
+import sys
+import urllib.request
+import urllib.error
+
+
+def slugify(name):
+    return name.lower().replace(" ", "-").replace("'", "").replace(".", "")
+
+
+def read_config(workspace):
+    config_path = os.path.join(workspace, "config.json")
+    if os.path.exists(config_path):
+        with open(config_path) as f:
+            return json.load(f)
+    return {}
+
+
+def api_patch(base_url, path):
+    req = urllib.request.Request(f"{base_url}{path}", method="PATCH")
+    req.add_header("Content-Length", "0")
+    try:
+        with urllib.request.urlopen(req, timeout=15) as resp:
+            return json.loads(resp.read()), None
+    except urllib.error.HTTPError as e:
+        return None, e.code
 
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--species", required=True, help="Common name of the species")
-    parser.add_argument("--region", required=True, help="Region")
-    parser.add_argument("--date", default=None, help="Date found YYYY-MM-DD, defaults to today")
-    parser.add_argument("--workspace", default="./birdfolio", help="Workspace directory")
+    parser.add_argument("--species", required=True)
+    parser.add_argument("--region", required=True)
+    parser.add_argument("--api-url", required=True)
+    parser.add_argument("--workspace", default="./birdfolio")
     args = parser.parse_args()
 
     workspace = os.path.abspath(args.workspace)
-    checklist_path = os.path.join(workspace, "checklist.json")
+    config = read_config(workspace)
+    api_url = args.api_url or config.get("apiUrl", "")
+    telegram_id = config.get("telegramId")
 
-    if not os.path.exists(checklist_path):
-        print(json.dumps({"status": "error", "message": "checklist.json not found — run init_birdfolio.py first"}))
+    if not telegram_id:
+        print(json.dumps({"status": "error", "message": "No telegramId in config.json."}))
+        sys.exit(1)
+
+    slug = slugify(args.species)
+    result, err_code = api_patch(api_url, f"/users/{telegram_id}/checklist/{slug}")
+
+    if err_code == 404:
+        # Species not on checklist — it's a bonus find, that's fine
+        print(json.dumps({"status": "not_on_checklist"}))
         return
 
-    with open(checklist_path) as f:
-        checklist = json.load(f)
+    if result is None:
+        print(json.dumps({"status": "error", "message": f"API error {err_code}"}))
+        sys.exit(1)
 
-    region_data = checklist.get(args.region, {})
-    date_found = args.date or datetime.now(timezone.utc).strftime("%Y-%m-%d")
-    species_lower = args.species.lower()
-
-    found_tier = None
-    already_found = False
-
-    for tier in ("common", "rare", "superRare"):
-        for entry in region_data.get(tier, []):
-            if entry.get("species", "").lower() == species_lower:
-                if entry.get("found"):
-                    already_found = True
-                else:
-                    entry["found"] = True
-                    entry["dateFound"] = date_found
-                found_tier = tier
-                break
-        if found_tier:
-            break
-
-    if found_tier:
-        if not already_found:
-            with open(checklist_path, "w") as f:
-                json.dump(checklist, f, indent=2)
-
-        print(json.dumps({
-            "status": "ok",
-            "species": args.species,
-            "region": args.region,
-            "tier": found_tier,
-            "dateFound": date_found,
-            "alreadyFound": already_found
-        }))
-    else:
-        print(json.dumps({
-            "status": "not_on_checklist",
-            "message": f"{args.species} is not on the {args.region} checklist — sighting still logged to life list"
-        }))
+    print(json.dumps({
+        "status": "ok",
+        "tier": result.get("rarity_tier"),
+        "dateFound": result.get("date_found"),
+    }))
 
 
 if __name__ == "__main__":

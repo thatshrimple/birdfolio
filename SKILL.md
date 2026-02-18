@@ -14,12 +14,15 @@ description: >
 
 Birdfolio turns bird photos into a personal life list. Users photograph birds in the wild, send the photo to you, and you identify the species with Vision. You.com provides real-time rarity and regional data. Each sighting is logged to a life list with a Pokémon-inspired rarity tier (Common / Rare / Super Rare) and gets a visual trading card sent back via Telegram.
 
-**Data lives in:** your workspace, inside a `birdfolio/` folder
+**Data lives in:** Railway PostgreSQL (via API) + local `birdfolio/` folder (cards, birds, config)
 **Scripts live in:** `{baseDir}/scripts/`
+**API:** `https://api-production-d0e2.up.railway.app` (also saved to `birdfolio/config.json` after init)
 **Schema reference:** `{baseDir}/references/data-schema.md`
 **Search queries:** `{baseDir}/references/you-search-queries.md`
 
-> **Note on --workspace:** Every script accepts a `--workspace` argument. Pass the absolute path to your `birdfolio/` folder in your workspace (e.g. `C:\Users\...\workspace\birdfolio`). All scripts default to `./birdfolio` if omitted, which may not resolve correctly — always pass it explicitly.
+> **Note on --workspace & --api-url:** Every data script accepts `--workspace` (absolute path to `birdfolio/`) and `--api-url` (API base URL). After `init_birdfolio.py` runs, both the API URL and Telegram ID are saved to `birdfolio/config.json` and read automatically — subsequent scripts only need `--workspace`.
+>
+> **Telegram ID:** Read from the inbound message metadata (`sender_id`). Pass as `--telegram-id` to `init_birdfolio.py` on first setup.
 
 ---
 
@@ -33,10 +36,12 @@ Birdfolio turns bird photos into a personal life list. Users photograph birds in
 
 1. Ask: *"What's your home region? (e.g. California, Texas, United Kingdom)"*
 
-2. Run to create the workspace folder structure:
+2. Run to create the workspace folder structure and register the user in the API:
    ```
    exec: python {baseDir}/scripts/init_birdfolio.py \
+     --telegram-id {senderTelegramId} \
      --region "{region}" \
+     --api-url "https://api-production-d0e2.up.railway.app" \
      --workspace <absolute path to birdfolio/ in your workspace>
    ```
 
@@ -296,9 +301,9 @@ Read `rarestBird` from output and reply with species name, rarity, date spotted,
 
 | Script | Key args | Returns |
 |--------|----------|---------|
-| `init_birdfolio.py` | `--region`, `--workspace` | `{status, workspace, files_created, next}` |
-| `log_sighting.py` | `--species`, `--scientific-name`, `--rarity`, `--region`, `--workspace` | `{status, sighting, isLifer, totalSightings, totalSpecies}` |
-| `update_checklist.py` | `--species`, `--region`, `--workspace` | `{status, tier, dateFound}` |
+| `init_birdfolio.py` | `--telegram-id`, `--region`, `--api-url`, `--workspace` | `{status, workspace, files_created, next}` |
+| `log_sighting.py` | `--species`, `--scientific-name`, `--rarity`, `--region`, `--date`, `--workspace` | `{status, sighting, isLifer, totalSightings, totalSpecies}` |
+| `update_checklist.py` | `--species`, `--region`, `--workspace` | `{status, tier, dateFound}` or `{status: not_on_checklist}` |
 | `get_stats.py` | `--workspace` | `{totalSightings, totalSpecies, checklistProgress, mostRecentSighting, rarestBird}` |
 | `generate_card.py` | `--species`, `--scientific-name`, `--rarity`, `--region`, `--date`, `--fun-fact`, `--image-path` (preferred) OR `--image-url`, `--object-position`, `--life-count`, `--workspace` | `{status, cardPath, filename}` |
 | `generate_checklist_card.py` | `--workspace` | `{status, cardPath}` — visual HTML checklist card |

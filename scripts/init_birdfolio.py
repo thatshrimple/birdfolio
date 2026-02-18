@@ -1,86 +1,88 @@
 #!/usr/bin/env python3
 """
-init_birdfolio.py — Create Birdfolio workspace structure.
+init_birdfolio.py — Initialize Birdfolio for a user via the API.
 
-Creates folders and empty JSON stubs. The agent populates checklist.json
-with species data (from You.com search results) using write_file after this runs.
+Creates the user record and local workspace folders.
+Checklist is populated separately by the agent after You.com search.
 
 Usage:
-  python init_birdfolio.py --region "California" [--workspace "./birdfolio"]
+  python init_birdfolio.py \
+    --telegram-id 6534749352 \
+    --region "Northern California" \
+    --api-url "https://api-production-d0e2.up.railway.app" \
+    [--workspace "./birdfolio"]
 
 Output (JSON to stdout):
-  {"status": "ok", "workspace": "...", "region": "...", "created": [...], "next": "..."}
+  {"status": "ok", "workspace": "...", "files_created": [...], "next": "..."}
 """
 import argparse
 import json
 import os
-from datetime import datetime, timezone
+import sys
+import urllib.request
+import urllib.error
+
+
+def api_post(base_url, path, payload):
+    data = json.dumps(payload).encode()
+    req = urllib.request.Request(
+        f"{base_url}{path}",
+        data=data,
+        headers={"Content-Type": "application/json"},
+        method="POST",
+    )
+    with urllib.request.urlopen(req, timeout=15) as resp:
+        return json.loads(resp.read())
 
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--region", required=True, help="Home region (e.g. 'California')")
-    parser.add_argument("--workspace", default="./birdfolio", help="Workspace directory")
+    parser.add_argument("--telegram-id", required=True, type=int)
+    parser.add_argument("--region", required=True)
+    parser.add_argument("--api-url", required=True, help="Birdfolio API base URL")
+    parser.add_argument("--workspace", default="./birdfolio")
     args = parser.parse_args()
 
     workspace = os.path.abspath(args.workspace)
-    region = args.region.strip()
-    created = []
 
-    # Create directory structure
-    for subdir in ["", "birds", "cards"]:
-        path = os.path.join(workspace, subdir)
-        os.makedirs(path, exist_ok=True)
-        if subdir:
-            created.append(path)
+    # Create local folder structure for cards and birds
+    folders = [
+        workspace,
+        os.path.join(workspace, "cards"),
+        os.path.join(workspace, "birds"),
+    ]
+    for folder in folders:
+        os.makedirs(folder, exist_ok=True)
 
-    # config.json
+    # Save config locally for quick access
+    config = {
+        "telegramId": args.telegram_id,
+        "homeRegion": args.region,
+        "apiUrl": args.api_url,
+    }
     config_path = os.path.join(workspace, "config.json")
-    if not os.path.exists(config_path):
-        config = {
-            "version": 1,
-            "setupDate": datetime.now(timezone.utc).strftime("%Y-%m-%d"),
-            "homeRegion": region,
-            "regions": [region],
-            "totalSightings": 0,
-            "totalSpecies": 0
-        }
-        with open(config_path, "w") as f:
-            json.dump(config, f, indent=2)
-        created.append("config.json")
+    with open(config_path, "w") as f:
+        json.dump(config, f, indent=2)
 
-    # lifeList.json
-    life_list_path = os.path.join(workspace, "lifeList.json")
-    if not os.path.exists(life_list_path):
-        with open(life_list_path, "w") as f:
-            json.dump([], f, indent=2)
-        created.append("lifeList.json")
-
-    # checklist.json — empty structure; agent writes species data via write_file
-    checklist_path = os.path.join(workspace, "checklist.json")
-    if not os.path.exists(checklist_path):
-        checklist = {
-            region: {
-                "common": [],
-                "rare": [],
-                "superRare": []
-            }
-        }
-        with open(checklist_path, "w") as f:
-            json.dump(checklist, f, indent=2)
-        created.append("checklist.json")
+    # Register user via API
+    try:
+        api_post(args.api_url, "/users", {
+            "telegram_id": args.telegram_id,
+            "region": args.region,
+        })
+    except urllib.error.HTTPError as e:
+        body = e.read().decode()
+        print(json.dumps({"status": "error", "message": f"API error {e.code}: {body}"}))
+        sys.exit(1)
+    except Exception as e:
+        print(json.dumps({"status": "error", "message": str(e)}))
+        sys.exit(1)
 
     print(json.dumps({
         "status": "ok",
         "workspace": workspace,
-        "region": region,
-        "files_created": created,
-        "checklist_path": checklist_path,
-        "next": (
-            f"Workspace ready. Now use write_file to populate {checklist_path} "
-            f"with species from You.com search results (10 common, 5 rare, 1 superRare). "
-            f"See references/data-schema.md for the checklist.json format."
-        )
+        "files_created": ["config.json", "cards/", "birds/"],
+        "next": "Populate checklist.json with You.com search results, then write to workspace.",
     }))
 
 
