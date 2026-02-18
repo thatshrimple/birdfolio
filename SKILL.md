@@ -222,6 +222,12 @@ message(action="send", media="<pngPath>")
 - If `isLifer` is true:
   *"🎉 New lifer! That's your first ever [commonName]! Bird #[totalSpecies] in your Birdfolio."*
 
+  **If `totalSpecies == 1` (this is their very first bird ever):** also send their personal PWA link:
+  *"🦅 Your Birdfolio is live! Bookmark this link to see your life list:
+  https://birdfolio.tonbistudio.com/app/[telegram_id]"*
+
+  The `telegram_id` is the sender's Telegram ID from the inbound message metadata (`sender_id`). This is also stored in `birdfolio/config.json` after init.
+
 - Otherwise:
   *"[commonName] spotted! You've now seen [N] species in your Birdfolio."*
 
