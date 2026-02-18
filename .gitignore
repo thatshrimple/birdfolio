@@ -1,0 +1,8 @@
+__pycache__/
+*.pyc
+*.pyo
+.DS_Store
+*.log
+Birdfolio CLAUDE.md
+Birdfolio Spec v1.0.md
+.claude/
