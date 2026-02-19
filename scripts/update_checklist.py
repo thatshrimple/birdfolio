@@ -47,13 +47,13 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--species", required=True)
     parser.add_argument("--region", required=True)
-    parser.add_argument("--api-url", required=True)
+    parser.add_argument("--api-url", default=None)
     parser.add_argument("--workspace", default="./birdfolio")
     args = parser.parse_args()
 
     workspace = os.path.abspath(args.workspace)
     config = read_config(workspace)
-    api_url = args.api_url or config.get("apiUrl", "")
+    api_url = (args.api_url or config.get("apiUrl", "https://birdfolio.tonbistudio.com")).rstrip("/")
     telegram_id = config.get("telegramId")
 
     if not telegram_id:
