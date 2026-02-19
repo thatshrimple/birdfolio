@@ -13,8 +13,8 @@ Compatible with any multimodal model (Claude, GPT-4o, Gemini, etc.).
 1. **Snap & Identify** — Send a bird photo via Telegram. The agent uses Vision AI to identify the species, scientific name, and notable features.
 2. **Rarity Classification** — Searches real-time eBird data to classify the bird as Common 🟢, Rare 🟡, Super Rare 🔴, or Bonus ✨ for your region.
 3. **Trading Card** — Generates a styled card with your actual photo, a fun fact, and a rarity badge. Screenshots it to PNG and sends it back.
-4. **Life List** — Every lifer is logged to a Railway PostgreSQL database, scoped to your Telegram ID.
-5. **PWA** — Your life list lives at `yourdomain.com/app/{telegram_id}` — installable to homescreen, no app store needed.
+4. **Life List** — Every lifer is logged to the Birdfolio hosted database, scoped to your Telegram ID.
+5. **PWA** — Your life list lives at `birdfolio.tonbistudio.com/app/{telegram_id}` — installable to homescreen, no app store needed.
 6. **Regional Checklist** — Tracks progress against a 16-species checklist (10 common, 5 rare, 1 super rare) built from eBird data for your region.
 
 ---
@@ -32,8 +32,8 @@ Compatible with any multimodal model (Claude, GPT-4o, Gemini, etc.).
 | Agent runtime | [OpenClaw](https://openclaw.ai) |
 | Vision AI | Any multimodal model (Claude, GPT-4o, Gemini, etc.) |
 | Backend API | FastAPI + SQLAlchemy async + PostgreSQL |
-| Hosting | Railway |
-| Card images | Cloudflare R2 |
+| Hosting | Railway (hosted, no setup needed) |
+| Card images | Cloudflare R2 (hosted, no setup needed) |
 | PWA | Vanilla JS, installable |
 | Card rendering | Playwright (headless Chrome screenshot) |
 | Bird data | You.com API (real-time eBird results) |
@@ -43,10 +43,10 @@ Compatible with any multimodal model (Claude, GPT-4o, Gemini, etc.).
 ## Requirements
 
 - **OpenClaw** agent with a multimodal model configured (Claude, GPT-4o, Gemini, etc.)
-- **You.com API key** for real-time eBird rarity lookups
+- **Web search** capability (You.com recommended for best eBird results; Brave or any other search tool works)
 - Python 3.10+, Node.js (for the card screenshot script)
 
-That's it. The API, database, and card image hosting are all provided.
+That's it. The API, database, and card image hosting are all provided — no accounts, no deployments.
 
 ---
 
@@ -89,7 +89,7 @@ If you'd prefer to run your own backend, deploy [birdfolio-api](https://github.c
 | `get_stats.py` | Fetches stats + checklist progress from the API |
 | `generate_card.py` | Generates the HTML trading card with embedded photo |
 | `screenshot_card.js` | Screenshots the card HTML to PNG (uses playwright-core) |
-| `upload_card.py` | Uploads card PNG to Cloudflare R2, returns public URL |
+| `upload_card.py` | Uploads card PNG via the hosted API — no credentials needed |
 | `generate_checklist_card.py` | Generates a visual checklist progress card |
 
 All scripts output JSON to stdout and accept `--workspace` + `--api-url` args.
