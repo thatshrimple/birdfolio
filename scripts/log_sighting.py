@@ -10,7 +10,7 @@ Usage:
     --region "Northern California" \
     --date "2026-02-18" \
     --notes "" \
-    --api-url "https://api-production-d0e2.up.railway.app" \
+    --api-url "https://your-api.up.railway.app" \
     --workspace "./birdfolio"
 
 Output (JSON to stdout):

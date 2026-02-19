@@ -7,9 +7,9 @@ Checklist is populated separately by the agent after You.com search.
 
 Usage:
   python init_birdfolio.py \
-    --telegram-id 6534749352 \
+    --telegram-id YOUR_TELEGRAM_ID \
     --region "Northern California" \
-    --api-url "https://api-production-d0e2.up.railway.app" \
+    --api-url "https://your-api.up.railway.app" \
     [--workspace "./birdfolio"]
 
 Output (JSON to stdout):

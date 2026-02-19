@@ -6,7 +6,7 @@ Usage:
   python update_checklist.py \
     --species "California Quail" \
     --region "Northern California" \
-    --api-url "https://api-production-d0e2.up.railway.app" \
+    --api-url "https://your-api.up.railway.app" \
     --workspace "./birdfolio"
 
 Output (JSON to stdout):

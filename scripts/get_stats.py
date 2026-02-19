@@ -4,7 +4,7 @@ get_stats.py — Fetch life list stats and checklist progress from the API.
 
 Usage:
   python get_stats.py \
-    --api-url "https://api-production-d0e2.up.railway.app" \
+    --api-url "https://your-api.up.railway.app" \
     --workspace "./birdfolio"
 
 Output (JSON to stdout):
