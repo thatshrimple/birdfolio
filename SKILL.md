@@ -331,3 +331,4 @@ Read `rarestBird` from output and reply with species name, rarity, date spotted,
 
 All Python scripts output JSON to stdout. Always pass absolute `--workspace` path.
 `screenshot_card.js` uses OpenClaw's bundled `playwright-core` + system Chrome/Edge (no separate install needed).
+
