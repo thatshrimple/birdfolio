@@ -1,4 +1,8 @@
-# 🦅 Birdfolio
+<p align="center">
+  <img src="assets/logo.jpg" alt="Birdfolio" width="160">
+</p>
+
+# Birdfolio
 
 **An AI-powered bird life list skill for OpenClaw agents.**
 
