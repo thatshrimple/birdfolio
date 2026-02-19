@@ -11,7 +11,7 @@ Compatible with any multimodal model (Claude, GPT-4o, Gemini, etc.).
 ## What It Does
 
 1. **Snap & Identify** — Send a bird photo via Telegram. The agent uses Vision AI to identify the species, scientific name, and notable features.
-2. **Rarity Classification** — Searches real-time eBird data to classify the bird as Common 🟢, Rare 🟡, Super Rare 🔴, or Bonus ✨ for your region.
+2. **Rarity Classification** — Uses the [You.com API](https://you.com) to search real-time eBird data and classify the bird as Common 🟢, Rare 🟡, Super Rare 🔴, or Bonus ✨ for your region.
 3. **Trading Card** — Generates a styled card with your actual photo, a fun fact, and a rarity badge. Screenshots it to PNG and sends it back.
 4. **Life List** — Every lifer is logged to the Birdfolio hosted database, scoped to your Telegram ID.
 5. **PWA** — Your life list lives at `birdfolio.tonbistudio.com/app/{telegram_id}` — installable to homescreen, no app store needed.
@@ -36,14 +36,14 @@ Compatible with any multimodal model (Claude, GPT-4o, Gemini, etc.).
 | Card images | Cloudflare R2 (hosted, no setup needed) |
 | PWA | Vanilla JS, installable |
 | Card rendering | Playwright (headless Chrome screenshot) |
-| Bird data | You.com API (real-time eBird results) |
+| Bird data | [You.com API](https://you.com) — real-time eBird rarity + species data |
 
 ---
 
 ## Requirements
 
 - **OpenClaw** agent with a multimodal model configured (Claude, GPT-4o, Gemini, etc.)
-- **Web search** capability (You.com recommended for best eBird results; Brave or any other search tool works)
+- **[You.com API](https://you.com)** for real-time eBird rarity and species data (other search tools work, but You.com's results are significantly better for birding data)
 - Python 3.10+, Node.js (for the card screenshot script)
 
 That's it. The API, database, and card image hosting are all provided — no accounts, no deployments.
