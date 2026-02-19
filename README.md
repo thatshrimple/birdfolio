@@ -48,7 +48,7 @@ clawhub install birdfolio
 Or clone this repo into your OpenClaw `skills/` folder:
 
 ```bash
-git clone https://github.com/tonbistudio/birdfolio skills/birdfolio
+git clone https://github.com/thatshrimple/birdfolio skills/birdfolio
 ```
 
 ---
@@ -57,7 +57,7 @@ git clone https://github.com/tonbistudio/birdfolio skills/birdfolio
 
 ### 1. Deploy the API
 
-The skill requires a backend API. Deploy [birdfolio-api](https://github.com/tonbistudio/birdfolio-api) to Railway (or any platform that supports FastAPI + PostgreSQL).
+The skill requires a backend API. Deploy [birdfolio-api](https://github.com/thatshrimple/birdfolio-api) to Railway (or any platform that supports FastAPI + PostgreSQL).
 
 ### 2. Set up Cloudflare R2
 
@@ -125,7 +125,7 @@ birdfolio/
 
 ## Related Repos
 
-- **[birdfolio-api](https://github.com/tonbistudio/birdfolio-api)** — FastAPI backend + PWA frontend
+- **[birdfolio-api](https://github.com/thatshrimple/birdfolio-api)** — FastAPI backend + PWA frontend
 
 ---
 
