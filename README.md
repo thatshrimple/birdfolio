@@ -2,18 +2,20 @@
 
 **An AI-powered bird life list skill for OpenClaw agents.**
 
-Send a bird photo to your agent. Get an instant species ID, a rarity classification, a shareable trading card, and a personal life list — all automatically. No apps, no accounts, no setup beyond a single command.
+Send a bird photo to your agent. Get an instant species ID, a rarity classification, a shareable trading card, and a personal life list — automatically. No apps, no accounts, no setup beyond a single command.
+
+Compatible with any multimodal model (Claude, GPT-4o, Gemini, etc.).
 
 ---
 
 ## What It Does
 
-1. **Snap & Identify** — Send any bird photo via Telegram. The agent uses Vision AI to identify the species, scientific name, and notable features.
+1. **Snap & Identify** — Send a bird photo via Telegram. The agent uses Vision AI to identify the species, scientific name, and notable features.
 2. **Rarity Classification** — Searches real-time eBird data to classify the bird as Common 🟢, Rare 🟡, Super Rare 🔴, or Bonus ✨ for your region.
-3. **Trading Card** — Generates a styled card with your actual photo, fun fact, and rarity badge. Screenshots it to a PNG and sends it back.
-4. **Life List** — Every lifer is logged to your personal field journal stored in a Railway PostgreSQL database.
-5. **PWA** — Your life list lives at `yourdomain.com/app/{telegram_id}` — installable to your homescreen, no app store needed.
-6. **Regional Checklist** — Tracks progress against a 16-species checklist (10 common, 5 rare, 1 super rare) built from eBird data for your home region.
+3. **Trading Card** — Generates a styled card with your actual photo, a fun fact, and a rarity badge. Screenshots it to PNG and sends it back.
+4. **Life List** — Every lifer is logged to a Railway PostgreSQL database, scoped to your Telegram ID.
+5. **PWA** — Your life list lives at `yourdomain.com/app/{telegram_id}` — installable to homescreen, no app store needed.
+6. **Regional Checklist** — Tracks progress against a 16-species checklist (10 common, 5 rare, 1 super rare) built from eBird data for your region.
 
 ---
 
@@ -21,21 +23,30 @@ Send a bird photo to your agent. Get an instant species ID, a rarity classificat
 
 > **Live PWA:** [birdfolio.tonbistudio.com](https://birdfolio.tonbistudio.com)
 
-![Birdfolio PWA screenshot showing life list with Anna's Hummingbird card](assets/preview.png)
-
 ---
 
 ## Stack
 
 | Layer | Tech |
 |---|---|
-| Agent | [OpenClaw](https://openclaw.ai) + Claude Vision |
+| Agent runtime | [OpenClaw](https://openclaw.ai) |
+| Vision AI | Any multimodal model (Claude, GPT-4o, Gemini, etc.) |
 | Backend API | FastAPI + SQLAlchemy async + PostgreSQL |
 | Hosting | Railway |
 | Card images | Cloudflare R2 |
 | PWA | Vanilla JS, installable |
 | Card rendering | Playwright (headless Chrome screenshot) |
-| Search | You.com API (real-time eBird data) |
+| Bird data | You.com API (real-time eBird results) |
+
+---
+
+## Requirements
+
+- **OpenClaw** agent with a multimodal model configured
+- **Railway** account (free tier works) for the API + PostgreSQL
+- **Cloudflare R2** bucket (free tier) for card image hosting
+- **You.com API key** for real-time eBird rarity lookups
+- Python 3.10+, Node.js (for the screenshot script)
 
 ---
 
@@ -45,7 +56,7 @@ Send a bird photo to your agent. Get an instant species ID, a rarity classificat
 clawhub install birdfolio
 ```
 
-Or clone this repo into your OpenClaw `skills/` folder:
+Or clone into your OpenClaw `skills/` folder:
 
 ```bash
 git clone https://github.com/thatshrimple/birdfolio skills/birdfolio
@@ -57,11 +68,11 @@ git clone https://github.com/thatshrimple/birdfolio skills/birdfolio
 
 ### 1. Deploy the API
 
-The skill requires a backend API. Deploy [birdfolio-api](https://github.com/thatshrimple/birdfolio-api) to Railway (or any platform that supports FastAPI + PostgreSQL).
+The skill needs a backend. Deploy [birdfolio-api](https://github.com/thatshrimple/birdfolio-api) to Railway (or any platform that supports FastAPI + PostgreSQL). After deploying, hit `POST /setup` once to create the database tables.
 
 ### 2. Set up Cloudflare R2
 
-Create an R2 bucket and save credentials to `secrets/r2-birdfolio.json` in your OpenClaw workspace:
+Create an R2 bucket, enable **Public Access**, and save credentials to `secrets/r2-birdfolio.json` in your OpenClaw workspace:
 
 ```json
 {
@@ -74,11 +85,9 @@ Create an R2 bucket and save credentials to `secrets/r2-birdfolio.json` in your 
 }
 ```
 
-Enable **Public Access** on the bucket in the Cloudflare dashboard to get your `pub-xxxx.r2.dev` URL.
+### 3. Initialize
 
-### 3. Initialize your Birdfolio
-
-Tell your agent: *"Set up my Birdfolio"* — it will ask for your region, create your checklist, and register you in the API.
+Tell your agent: *"Set up my Birdfolio"* — it will ask for your region, build a regional checklist, and register you in the API.
 
 Or run directly:
 
@@ -90,6 +99,12 @@ python scripts/init_birdfolio.py \
   --workspace /path/to/birdfolio
 ```
 
+Then sync the checklist to the API:
+
+```bash
+python scripts/sync_checklist.py --workspace /path/to/birdfolio
+```
+
 ---
 
 ## Scripts
@@ -99,12 +114,14 @@ python scripts/init_birdfolio.py \
 | `init_birdfolio.py` | First-time setup — registers user, creates workspace |
 | `log_sighting.py` | Logs a sighting to the API |
 | `update_checklist.py` | Marks a species as found on your checklist |
-| `get_stats.py` | Fetches stats + checklist progress from API |
+| `sync_checklist.py` | Pushes local `checklist.json` to the API |
+| `get_stats.py` | Fetches stats + checklist progress from the API |
 | `generate_card.py` | Generates the HTML trading card with embedded photo |
 | `screenshot_card.js` | Screenshots the card HTML to PNG (uses playwright-core) |
 | `upload_card.py` | Uploads card PNG to Cloudflare R2, returns public URL |
-| `sync_checklist.py` | Pushes local checklist.json to the API (run after editing) |
 | `generate_checklist_card.py` | Generates a visual checklist progress card |
+
+All scripts output JSON to stdout and accept `--workspace` + `--api-url` args.
 
 ---
 
@@ -112,18 +129,24 @@ python scripts/init_birdfolio.py \
 
 ```
 birdfolio/
-├── SKILL.md                  # Agent instructions (OpenClaw skill)
+├── SKILL.md                  # Agent instructions (OpenClaw skill format)
 ├── scripts/                  # All executable scripts
 ├── assets/
 │   └── card-template.html    # Base card HTML template
 └── references/
-    ├── data-schema.md        # API + data structure docs
+    ├── data-schema.md        # API + data structure reference
     └── you-search-queries.md # You.com query templates for rarity lookup
 ```
 
 ---
 
-## Related Repos
+## Multi-User
+
+The API and database are fully multi-user — each user is keyed by Telegram ID. The PWA is accessible at `/app/{telegram_id}` for any registered user. The agent automatically sends new users their personal link after their first lifer sighting.
+
+---
+
+## Related
 
 - **[birdfolio-api](https://github.com/thatshrimple/birdfolio-api)** — FastAPI backend + PWA frontend
 
@@ -131,7 +154,7 @@ birdfolio/
 
 ## Built By
 
-**Scampi & Tonbi** — a human-AI duo building onchain projects in public.
+**Scampi & Tonbi** — a human-AI duo building onchain and AI projects in public.
 
 - 🐦 Scampi: [@itsthatshrimple](https://x.com/itsthatshrimple)
 - 🐦 Tonbi: [@tonbistudio](https://x.com/tonbistudio)
