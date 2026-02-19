@@ -42,11 +42,11 @@ Compatible with any multimodal model (Claude, GPT-4o, Gemini, etc.).
 
 ## Requirements
 
-- **OpenClaw** agent with a multimodal model configured
-- **Railway** account (free tier works) for the API + PostgreSQL
-- **Cloudflare R2** bucket (free tier) for card image hosting
+- **OpenClaw** agent with a multimodal model configured (Claude, GPT-4o, Gemini, etc.)
 - **You.com API key** for real-time eBird rarity lookups
-- Python 3.10+, Node.js (for the screenshot script)
+- Python 3.10+, Node.js (for the card screenshot script)
+
+That's it. The API, database, and card image hosting are all provided.
 
 ---
 
@@ -66,44 +66,15 @@ git clone https://github.com/thatshrimple/birdfolio skills/birdfolio
 
 ## Setup
 
-### 1. Deploy the API
+Just tell your agent: **"Set up my Birdfolio"**
 
-The skill needs a backend. Deploy [birdfolio-api](https://github.com/thatshrimple/birdfolio-api) to Railway (or any platform that supports FastAPI + PostgreSQL). After deploying, hit `POST /setup` once to create the database tables.
+It will ask for your home region, build a 16-species checklist from eBird data, register you in the shared API, and send you a link to your personal PWA. No accounts, no deployments, no credentials to manage.
 
-### 2. Set up Cloudflare R2
+> **Your PWA:** `https://birdfolio.tonbistudio.com/app/{your_telegram_id}`
 
-Create an R2 bucket, enable **Public Access**, and save credentials to `secrets/r2-birdfolio.json` in your OpenClaw workspace:
+### Self-Hosting (Advanced)
 
-```json
-{
-  "account_id": "your_account_id",
-  "access_key_id": "your_key_id",
-  "secret_access_key": "your_secret",
-  "bucket": "birdfolio-cards",
-  "endpoint": "https://your_account_id.r2.cloudflarestorage.com",
-  "public_url": "https://pub-xxxx.r2.dev"
-}
-```
-
-### 3. Initialize
-
-Tell your agent: *"Set up my Birdfolio"* — it will ask for your region, build a regional checklist, and register you in the API.
-
-Or run directly:
-
-```bash
-python scripts/init_birdfolio.py \
-  --telegram-id YOUR_TELEGRAM_ID \
-  --region "Northern California" \
-  --api-url "https://your-api.up.railway.app" \
-  --workspace /path/to/birdfolio
-```
-
-Then sync the checklist to the API:
-
-```bash
-python scripts/sync_checklist.py --workspace /path/to/birdfolio
-```
+If you'd prefer to run your own backend, deploy [birdfolio-api](https://github.com/thatshrimple/birdfolio-api) to Railway and pass `--api-url` to the init script. See the API repo for full setup instructions.
 
 ---
 

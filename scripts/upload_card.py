@@ -1,23 +1,27 @@
 #!/usr/bin/env python3
 """
-upload_card.py — Upload a card PNG to Cloudflare R2 and return the public URL.
+upload_card.py — Upload a card PNG via the Birdfolio API (no R2 credentials needed).
 
 Usage:
-  python upload_card.py <png_path> [--secrets <path to r2 secrets json>]
+  python upload_card.py <png_path> [--api-url <url>] [--workspace <path>]
 
 Output (JSON to stdout):
   {"status": "ok", "url": "https://pub-xxx.r2.dev/cards/filename.png"}
 """
-import sys
-import os
-import json
-import argparse
+import sys, os, json, argparse, urllib.request, urllib.error
+
+def load_config(workspace):
+    cfg_path = os.path.join(workspace, "config.json")
+    if os.path.exists(cfg_path):
+        with open(cfg_path) as f:
+            return json.load(f)
+    return {}
 
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("png_path")
-    parser.add_argument("--secrets", default=None,
-                        help="Path to r2 secrets JSON. Defaults to workspace secrets/r2-birdfolio.json")
+    parser.add_argument("--api-url", default=None)
+    parser.add_argument("--workspace", default=None)
     args = parser.parse_args()
 
     png_path = os.path.abspath(args.png_path)
@@ -25,59 +29,42 @@ def main():
         print(json.dumps({"status": "error", "message": f"File not found: {png_path}"}))
         sys.exit(1)
 
-    # Resolve secrets file
-    if args.secrets:
-        secrets_path = args.secrets
-    else:
-        # Walk up from this script to find the workspace secrets folder
+    # Resolve workspace + config
+    workspace = args.workspace
+    if not workspace:
         script_dir = os.path.dirname(os.path.abspath(__file__))
-        workspace = os.path.abspath(os.path.join(script_dir, "..", "..", ".."))
-        secrets_path = os.path.join(workspace, "secrets", "r2-birdfolio.json")
+        workspace = os.path.abspath(os.path.join(script_dir, "..", "..", "..", "birdfolio"))
 
-    if not os.path.exists(secrets_path):
-        print(json.dumps({"status": "error", "message": f"R2 secrets not found at {secrets_path}"}))
-        sys.exit(1)
+    cfg = load_config(workspace)
+    api_url = (args.api_url or cfg.get("apiUrl", "https://birdfolio.tonbistudio.com")).rstrip("/")
 
-    with open(secrets_path) as f:
-        cfg = json.load(f)
-
-    try:
-        import boto3
-    except ImportError:
-        print(json.dumps({"status": "error", "message": "boto3 not installed. Run: pip install boto3"}))
-        sys.exit(1)
-
-    s3 = boto3.client(
-        "s3",
-        endpoint_url=cfg["endpoint"],
-        aws_access_key_id=cfg["access_key_id"],
-        aws_secret_access_key=cfg["secret_access_key"],
-        region_name="auto",
-    )
-
-    key = "cards/" + os.path.basename(png_path)
+    filename = os.path.basename(png_path)
+    boundary = "----BirdfolioUpload"
 
     with open(png_path, "rb") as f:
-        s3.put_object(
-            Bucket=cfg["bucket"],
-            Key=key,
-            Body=f,
-            ContentType="image/png",
-        )
+        file_data = f.read()
 
-    # Public URL — requires public access enabled on the bucket in Cloudflare dashboard
-    public_url = cfg.get("public_url", "").rstrip("/")
-    if not public_url:
-        print(json.dumps({
-            "status": "ok",
-            "url": "",
-            "note": "No public_url configured in r2-birdfolio.json. Enable public access on the bucket and add public_url to secrets."
-        }))
-        return
+    body = (
+        f"--{boundary}\r\n"
+        f'Content-Disposition: form-data; name="file"; filename="{filename}"\r\n'
+        f"Content-Type: image/png\r\n\r\n"
+    ).encode() + file_data + f"\r\n--{boundary}--\r\n".encode()
 
-    url = f"{public_url}/{key}"
-    print(json.dumps({"status": "ok", "url": url}))
+    req = urllib.request.Request(
+        f"{api_url}/cards/upload",
+        data=body,
+        method="POST",
+        headers={"Content-Type": f"multipart/form-data; boundary={boundary}"},
+    )
 
+    try:
+        res = urllib.request.urlopen(req, timeout=30)
+        result = json.loads(res.read().decode())
+        print(json.dumps({"status": "ok", "url": result["url"]}))
+    except urllib.error.HTTPError as e:
+        body_err = e.read().decode()
+        print(json.dumps({"status": "error", "code": e.code, "message": body_err}))
+        sys.exit(1)
 
 if __name__ == "__main__":
     main()
